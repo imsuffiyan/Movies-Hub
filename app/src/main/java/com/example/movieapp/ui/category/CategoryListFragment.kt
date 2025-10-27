@@ -2,7 +2,7 @@ package com.example.movieapp.ui.category
 
 import android.os.Bundle
 import android.view.View
-import androidx.core.content.res.AppCompatResources
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -43,11 +43,7 @@ class CategoryListFragment : Fragment(R.layout.fragment_category_list) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+
 
         favRepo = FavoritesRepository(requireContext())
 
@@ -107,13 +103,13 @@ class CategoryListFragment : Fragment(R.layout.fragment_category_list) {
 
     private fun openDetail(movie: Movie) {
         val action = CategoryListFragmentDirections.actionCategoryListFragmentToMovieDetailFragment(
-            title = movie.title,
-            overview = movie.overview,
-            poster = movie.posterPath,
-            releaseDate = movie.releaseDate,
-            vote = movie.voteAverage ?: -1f,
-            genreIds = movie.genreIds?.toIntArray(),
-            id = movie.id
+            movie.title,
+            movie.overview,
+            movie.posterPath,
+            movie.releaseDate,
+            movie.voteAverage ?: -1f,
+             movie.genreIds?.toIntArray(),
+            movie.id
         )
         findNavController().navigate(action)
     }

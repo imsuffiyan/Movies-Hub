@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
-import androidx.core.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -34,12 +34,6 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
         val toolbar = view.findViewById<MaterialToolbar>(R.id.detail_toolbar)
         toolbar.title = args.title ?: getString(R.string.app_name)
         toolbar.navigationIcon = AppCompatResources.getDrawable(requireContext(), androidx.appcompat.R.drawable.abc_ic_ab_back_material)
@@ -60,7 +54,7 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
         val overview = args.overview
         val poster = args.poster
         val release = args.releaseDate
-        val vote = args.vote
+        val vote = args.voteAverage
         val genreIds = args.genreIds
         val movieId = args.id
 

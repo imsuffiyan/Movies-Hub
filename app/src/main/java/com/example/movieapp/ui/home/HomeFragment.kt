@@ -36,11 +36,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         val toolbar = view.findViewById<MaterialToolbar>(R.id.main_toolbar)
         toolbar.setOnMenuItemClickListener { item ->
@@ -51,8 +46,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 }
                 R.id.action_fav -> {
                     val action = HomeFragmentDirections.actionHomeFragmentToCategoryListFragment(
-                        category = "favorite",
-                        title = getString(R.string.favorite_movies)
+                        "favorite",
+                       getString(R.string.favorite_movies)
                     )
                     findNavController().navigate(action)
                     true
@@ -127,13 +122,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun navigateToDetail(movie: Movie) {
         val action = HomeFragmentDirections.actionHomeFragmentToMovieDetailFragment(
-            title = movie.title,
-            overview = movie.overview,
-            poster = movie.posterPath,
-            releaseDate = movie.releaseDate,
-            vote = movie.voteAverage ?: -1f,
-            genreIds = movie.genreIds?.toIntArray(),
-            id = movie.id
+            movie.title,
+            movie.overview,
+            movie.posterPath,
+            movie.releaseDate,
+            movie.voteAverage ?: -1f,
+            movie.genreIds?.toIntArray(),
+            movie.id
         )
         findNavController().navigate(action)
     }

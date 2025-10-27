@@ -54,10 +54,11 @@
             android:name="releaseDate"
             app:argType="string"
             app:nullable="true" />
+
         <argument
-            android:name="vote"
-            app:argType="float"
-            android:defaultValue="-1.0" />
+            android:name="voteAverage"
+            app:argType="float" />
+
         <argument
             android:name="genreIds"
             app:argType="integer[]"

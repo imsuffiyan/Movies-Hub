@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val host = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val host = supportFragmentManager.findFragmentById(R.id.nav_graph) as NavHostFragment
         navController = host.navController
     }
 
