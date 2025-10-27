@@ -62,40 +62,40 @@ class MovieRepository(private val api: TmdbApi) {
 
     // Backwards-compatible convenience methods
     fun getTopRated(callback: (Result<List<Movie>>) -> Unit) {
-        getTopRatedPage(1) { res -> callback(res.map { it.results }) }
+        getTopRatedPage { res -> callback(res.map { it.results }) }
     }
 
     fun getPopular(callback: (Result<List<Movie>>) -> Unit) {
-        getPopularPage(1) { res -> callback(res.map { it.results }) }
+        getPopularPage { res -> callback(res.map { it.results }) }
     }
 
     fun getNowPlaying(callback: (Result<List<Movie>>) -> Unit) {
-        getNowPlayingPage(1) { res -> callback(res.map { it.results }) }
+        getNowPlayingPage { res -> callback(res.map { it.results }) }
     }
 
     // Paginated methods returning MovieResponse (page & total_pages)
-    private fun getTopRatedPage(page: Int = 1, callback: (Result<MovieResponse>) -> Unit) {
+    private fun getTopRatedPage(callback: (Result<MovieResponse>) -> Unit) {
         val key = runCatching { requireApiKey() }.getOrElse {
             callback(Result.failure(it))
             return
         }
-        api.getTopRated(key, page).enqueueResponse(page, callback)
+        api.getTopRated(key, 1).enqueueResponse(1, callback)
     }
 
-    private fun getPopularPage(page: Int = 1, callback: (Result<MovieResponse>) -> Unit) {
+    private fun getPopularPage(callback: (Result<MovieResponse>) -> Unit) {
         val key = runCatching { requireApiKey() }.getOrElse {
             callback(Result.failure(it))
             return
         }
-        api.getPopular(key, page).enqueueResponse(page, callback)
+        api.getPopular(key, 1).enqueueResponse(1, callback)
     }
 
-    private fun getNowPlayingPage(page: Int = 1, callback: (Result<MovieResponse>) -> Unit) {
+    private fun getNowPlayingPage(callback: (Result<MovieResponse>) -> Unit) {
         val key = runCatching { requireApiKey() }.getOrElse {
             callback(Result.failure(it))
             return
         }
-        api.getNowPlaying(key, page).enqueueResponse(page, callback)
+        api.getNowPlaying(key, 1).enqueueResponse(1, callback)
     }
 
     // New suspend helpers for use by PagingSource

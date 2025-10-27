@@ -68,8 +68,6 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    toolbar.title = state.title ?: getString(R.string.app_name)
-
                     tvTitle.text = state.title ?: getString(R.string.app_name)
                     tvOverview.text = state.overview.orEmpty()
                     val year = state.releaseDate?.takeIf { it.isNotBlank() }?.substringBefore('-')
