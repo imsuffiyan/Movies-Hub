@@ -2,12 +2,19 @@ package com.example.movieapp.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.movieapp.domain.repository.FavoritesRepositoryInterface
 import com.example.movieapp.model.Movie
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.jvm.Volatile
 
-class FavoritesRepository(context: Context) {
+@Singleton
+class FavoritesRepository @Inject constructor(
+    @ApplicationContext context: Context
+) : FavoritesRepositoryInterface {
     private val prefs: SharedPreferences = context.getSharedPreferences("favorites", Context.MODE_PRIVATE)
     private val gson = Gson()
     @Volatile
@@ -31,25 +38,30 @@ class FavoritesRepository(context: Context) {
         prefs.edit().putString("movies_map", gson.toJson(map)).apply()
     }
 
-    fun add(movie: Movie) {
+    override fun addToFavorites(movie: Movie) {
         val map = getMap()
         map[movie.id.toString()] = movie
         saveMap(map)
     }
 
-    fun remove(movieId: Int) {
+    override fun removeFromFavorites(movieId: Int) {
         val map = getMap()
         map.remove(movieId.toString())
         saveMap(map)
     }
 
-    fun isFavorite(movieId: Int): Boolean {
+    override fun isFavorite(movieId: Int): Boolean {
         val map = getMap()
         return map.containsKey(movieId.toString())
     }
 
-    fun allFavorites(): List<Movie> {
+    override fun getAllFavorites(): List<Movie> {
         val map = getMap()
         return map.values.toList()
     }
+
+    // Legacy methods for backward compatibility
+    fun add(movie: Movie) = addToFavorites(movie)
+    fun remove(movieId: Int) = removeFromFavorites(movieId)
+    fun allFavorites(): List<Movie> = getAllFavorites()
 }

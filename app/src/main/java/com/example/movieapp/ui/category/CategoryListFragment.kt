@@ -3,8 +3,6 @@ package com.example.movieapp.ui.category
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -17,9 +15,9 @@ import com.example.movieapp.model.Movie
 import com.example.movieapp.paging.CategoryLoadStateAdapter
 import com.example.movieapp.paging.CategoryPagingAdapter
 import com.example.movieapp.paging.CategoryViewModel
-import com.example.movieapp.repository.FavoritesRepository
 import com.example.movieapp.ui.MovieAdapter
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -28,47 +26,29 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class CategoryListFragment : Fragment(R.layout.fragment_category_list) {
 
-    private val viewModel: CategoryViewModel by viewModels()
+    private val pagingViewModel: CategoryViewModel by viewModels()
+    private val categoryViewModel: CategoryListViewModel by viewModels()
     private val args: CategoryListFragmentArgs by navArgs()
 
-    private lateinit var favRepo: FavoritesRepository
     private lateinit var pagingAdapter: CategoryPagingAdapter
     private lateinit var loadStateAdapter: CategoryLoadStateAdapter
     private lateinit var legacyAdapter: MovieAdapter
     private var recycler: RecyclerView? = null
 
     private var pagingJob: Job? = null
-    private var currentCategory: String = "popular"
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
-
-        favRepo = FavoritesRepository(requireContext())
-
-        pagingAdapter = CategoryPagingAdapter(onItemClick = { movie -> openDetail(movie) })
-        loadStateAdapter = CategoryLoadStateAdapter { pagingAdapter.retry() }
-        legacyAdapter = MovieAdapter(onItemClick = { movie -> openDetail(movie) })
-
-        recycler = view.findViewById<RecyclerView>(R.id.category_list).apply {
-            layoutManager = LinearLayoutManager(requireContext())
-        }
-
-        val toolbar = view.findViewById<MaterialToolbar>(R.id.category_toolbar)
-        toolbar.title = args.title
-        toolbar.navigationIcon = AppCompatResources.getDrawable(requireContext(), androidx.appcompat.R.drawable.abc_ic_ab_back_material)
-        toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
-
-        currentCategory = args.category
-        displayCategory(currentCategory)
+        setupToolbar(view)
+        setupRecyclerView(view)
+        setupViewModel()
+        observeViewModel()
     }
 
     override fun onResume() {
         super.onResume()
-        if (currentCategory == "favorite") {
-            refreshFavorites()
-        }
+        categoryViewModel.refreshFavorites()
     }
 
     override fun onDestroyView() {
@@ -78,27 +58,74 @@ class CategoryListFragment : Fragment(R.layout.fragment_category_list) {
         super.onDestroyView()
     }
 
-    private fun displayCategory(category: String) {
-        currentCategory = category
-        pagingJob?.cancel()
+    private fun setupToolbar(view: View) {
+        val toolbar = view.findViewById<MaterialToolbar>(R.id.category_toolbar)
+        toolbar.title = args.title
+        toolbar.navigationIcon = AppCompatResources.getDrawable(
+            requireContext(), 
+            androidx.appcompat.R.drawable.abc_ic_ab_back_material
+        )
+        toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
+    }
 
-        if (category == "favorite") {
-            recycler?.adapter = legacyAdapter
-            refreshFavorites()
-            return
+    private fun setupRecyclerView(view: View) {
+        pagingAdapter = CategoryPagingAdapter(onItemClick = { movie -> openDetail(movie) })
+        loadStateAdapter = CategoryLoadStateAdapter { pagingAdapter.retry() }
+        legacyAdapter = MovieAdapter(onItemClick = { movie -> openDetail(movie) })
+
+        recycler = view.findViewById<RecyclerView>(R.id.category_list).apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            setHasFixedSize(true)
+        }
+    }
+
+    private fun setupViewModel() {
+        categoryViewModel.initialize(args.category, args.title)
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            categoryViewModel.uiState.collect { state ->
+                handleUiState(state)
+            }
+        }
+    }
+
+    private fun handleUiState(state: CategoryUiState) {
+        when (state.category) {
+            "favorite" -> {
+                recycler?.adapter = legacyAdapter
+                legacyAdapter.update(state.movies)
+            }
+            else -> {
+                setupPagingAdapter(state.category)
+            }
         }
 
+        if (state.hasError) {
+            showError(state.error!!)
+        }
+    }
+
+    private fun setupPagingAdapter(category: String) {
         recycler?.adapter = pagingAdapter.withLoadStateFooter(loadStateAdapter)
+        pagingJob?.cancel()
         pagingJob = viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.moviesFor(category).collectLatest { pagingData ->
+            pagingViewModel.moviesFor(category).collectLatest { pagingData ->
                 pagingAdapter.submitData(pagingData)
             }
         }
     }
 
-    private fun refreshFavorites() {
-        val favorites = favRepo.allFavorites()
-        legacyAdapter.update(favorites)
+    private fun showError(message: String) {
+        view?.let { root ->
+            Snackbar.make(root, message, Snackbar.LENGTH_LONG)
+                .setAction(R.string.retry) { 
+                    categoryViewModel.clearError()
+                    categoryViewModel.loadMovies()
+                }
+                .show()
+        }
     }
 
     private fun openDetail(movie: Movie) {

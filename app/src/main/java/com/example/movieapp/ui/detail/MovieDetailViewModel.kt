@@ -2,8 +2,8 @@ package com.example.movieapp.ui.detail
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.example.movieapp.domain.usecase.FavoriteMoviesUseCase
 import com.example.movieapp.model.Movie
-import com.example.movieapp.repository.FavoritesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.update
 @HiltViewModel
 class MovieDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val favoritesRepository: FavoritesRepository,
+    private val favoriteMoviesUseCase: FavoriteMoviesUseCase,
 ) : ViewModel() {
 
     private val args = MovieDetailFragmentArgs.fromSavedStateHandle(savedStateHandle)
@@ -28,7 +28,7 @@ class MovieDetailViewModel @Inject constructor(
             releaseDate = args.releaseDate,
             voteAverage = args.voteAverage,
             genreIds = args.genreIds?.toList().orEmpty(),
-            isFavorite = if (args.id > 0) favoritesRepository.isFavorite(args.id) else false,
+            isFavorite = if (args.id > 0) favoriteMoviesUseCase.isFavorite(args.id) else false,
         ),
     )
     val uiState: StateFlow<MovieDetailUiState> = _uiState.asStateFlow()
@@ -49,9 +49,9 @@ class MovieDetailViewModel @Inject constructor(
                 voteAverage = current.voteAverage.takeIf { it >= 0f },
                 genreIds = current.genreIds.takeIf { it.isNotEmpty() },
             )
-            favoritesRepository.add(movie)
+            favoriteMoviesUseCase.addToFavorites(movie)
         } else {
-            favoritesRepository.remove(current.movieId)
+            favoriteMoviesUseCase.removeFromFavorites(current.movieId)
         }
         _uiState.update { it.copy(isFavorite = shouldBeFavorite) }
         return shouldBeFavorite

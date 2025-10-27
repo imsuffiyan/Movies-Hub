@@ -1,16 +1,22 @@
 package com.example.movieapp.repository
 
 import com.example.movieapp.BuildConfig
+import com.example.movieapp.domain.repository.MovieRepositoryInterface
 import com.example.movieapp.model.Movie
 import com.example.movieapp.model.MovieResponse
 import com.example.movieapp.network.TmdbApi
 import com.example.movieapp.network.awaitResponse
+import kotlinx.coroutines.suspendCancellableCoroutine
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.HttpException
 import retrofit2.Response
+import javax.inject.Inject
+import kotlin.coroutines.resume
 
-class MovieRepository(private val api: TmdbApi) {
+class MovieRepository @Inject constructor(
+    private val api: TmdbApi
+) : MovieRepositoryInterface {
 
     private fun requireApiKey(): String {
         return BuildConfig.TMDB_API_KEY.takeIf { it.isNotBlank() }
@@ -120,5 +126,24 @@ class MovieRepository(private val api: TmdbApi) {
     suspend fun getNowPlayingPageSuspend(page: Int = 1): MovieResponse {
         val key = requireApiKey()
         return fetchPage(api.getNowPlaying(key, page), page)
+    }
+
+    // Interface implementations
+    override suspend fun getTopRated(): Result<List<Movie>> = runCatching {
+        getTopRatedPageSuspend().results
+    }
+
+    override suspend fun getPopular(): Result<List<Movie>> = runCatching {
+        getPopularPageSuspend().results
+    }
+
+    override suspend fun getNowPlaying(): Result<List<Movie>> = runCatching {
+        getNowPlayingPageSuspend().results
+    }
+
+    override suspend fun searchMovies(query: String): Result<List<Movie>> = suspendCancellableCoroutine { continuation ->
+        searchMovies(query) { result ->
+            continuation.resume(result)
+        }
     }
 }

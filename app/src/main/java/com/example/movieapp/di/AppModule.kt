@@ -1,33 +1,40 @@
 package com.example.movieapp.di
 
-import android.content.Context
+import com.example.movieapp.domain.repository.FavoritesRepositoryInterface
+import com.example.movieapp.domain.repository.MovieRepositoryInterface
 import com.example.movieapp.network.NetworkModule
 import com.example.movieapp.network.TmdbApi
 import com.example.movieapp.repository.FavoritesRepository
 import com.example.movieapp.repository.MovieRepository
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule {
-
+object NetworkProviderModule {
     @Provides
     @Singleton
     fun provideTmdbApi(): TmdbApi = NetworkModule.api
+}
 
-    @Provides
-    @Singleton
-    fun provideMovieRepository(api: TmdbApi): MovieRepository = MovieRepository(api)
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideFavoritesRepository(
-        @ApplicationContext context: Context,
-    ): FavoritesRepository = FavoritesRepository(context)
+    abstract fun bindMovieRepository(
+        movieRepository: MovieRepository
+    ): MovieRepositoryInterface
+
+    @Binds
+    @Singleton
+    abstract fun bindFavoritesRepository(
+        favoritesRepository: FavoritesRepository
+    ): FavoritesRepositoryInterface
 }
 
