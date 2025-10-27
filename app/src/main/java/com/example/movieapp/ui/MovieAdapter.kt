@@ -18,7 +18,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.movieapp.R
-import com.example.movieapp.model.Movie
+import com.example.movieapp.domain.model.Movie
 import com.example.movieapp.util.GenreUtils
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -27,7 +27,7 @@ import java.util.Locale
 
 class MovieAdapter(
     initialItems: List<Movie> = emptyList(),
-    private val onItemClick: (Movie) -> Unit = {}
+    private val onItemClick: (Movie) -> Unit = {},
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -37,7 +37,6 @@ class MovieAdapter(
         private const val VIEW_TYPE_LOADING = 1
     }
 
-    // mutable list so we can append
     private val items = initialItems.toMutableList()
     private var loadingFooter = false
 
@@ -73,11 +72,9 @@ class MovieAdapter(
     fun showLoading(show: Boolean) {
         if (show == loadingFooter) return
         if (show) {
-            // insert footer at end (index == current items.size)
             loadingFooter = true
             notifyItemInserted(items.size)
         } else {
-            // remove footer at previous footer index (which is current items.size)
             val footerIndex = items.size
             loadingFooter = false
             notifyItemRemoved(footerIndex)
@@ -105,7 +102,8 @@ class MovieAdapter(
 
     override fun getItemCount(): Int = items.size + if (loadingFooter) 1 else 0
 
-    inner class Holder(view: View, private val click: (Movie) -> Unit, private val itemsRef: List<Movie>) : RecyclerView.ViewHolder(view) {
+    inner class Holder(view: View, private val click: (Movie) -> Unit, private val itemsRef: List<Movie>) :
+        RecyclerView.ViewHolder(view) {
         private val poster: ShapeableImageView = view.findViewById(R.id.poster)
         private val shimmerContainer: View = view.findViewById(R.id.poster_shimmer)
         private val title: TextView = view.findViewById(R.id.title)
@@ -116,7 +114,6 @@ class MovieAdapter(
         private var shimmerAnimator: ObjectAnimator? = null
 
         init {
-            // Handle item click: delegate to onItemClick lambda with the current item
             itemView.setOnClickListener {
                 val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
@@ -132,22 +129,16 @@ class MovieAdapter(
             title.text = item.title ?: ctx.getString(R.string.app_name)
             overview.text = item.overview ?: ""
 
-            // Rating (locale-aware)
             rating.text = item.voteAverage?.let { String.format(Locale.getDefault(), "★ %.1f", it) } ?: dash
 
-            // Release year (below genres)
             val year = item.releaseDate?.takeIf { it.isNotBlank() }?.substringBefore('-')
             releaseYearTv.text = year ?: ""
 
-            // Genres: map ids to names
             val genreNames = GenreUtils.namesForIds(item.genreIds)
-
-            // Populate ChipGroup: clear previous chips then add new ones
             genresGroup.removeAllViews()
             val chipBgColor = ContextCompat.getColor(ctx, R.color.rating_overlay)
             val chipTextColor = ContextCompat.getColor(ctx, R.color.colorOnPrimary)
             val bgState = ColorStateList.valueOf(chipBgColor)
-            // corner radius set by theme / default; avoid deprecated setter
             val textSizePx = ctx.resources.getDimension(R.dimen.chip_text_size)
 
             for (name in genreNames) {
@@ -157,13 +148,10 @@ class MovieAdapter(
                 chip.isCheckable = false
                 chip.chipBackgroundColor = bgState
                 chip.setTextColor(chipTextColor)
-                // rely on theme default corner radius to avoid deprecated API
-                // set text size using pixels
                 chip.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizePx)
                 genresGroup.addView(chip)
             }
 
-            // Prepare shimmer animator (simple pulsing alpha) and start it
             shimmerAnimator?.cancel()
             shimmerContainer.alpha = 1f
             shimmerAnimator = ObjectAnimator.ofFloat(shimmerContainer, "alpha", 0.6f, 1f).apply {
@@ -173,7 +161,6 @@ class MovieAdapter(
                 start()
             }
 
-            // Poster image into ShapeableImageView with shimmer fallback
             val url = item.posterPath?.let { IMAGE_BASE + it }
             if (url != null) {
                 Glide.with(ctx)
@@ -184,12 +171,11 @@ class MovieAdapter(
                             e: GlideException?,
                             model: Any?,
                             target: Target<Drawable>,
-                            isFirstResource: Boolean
+                            isFirstResource: Boolean,
                         ): Boolean {
-                            // stop shimmer on failure
                             shimmerAnimator?.cancel()
                             shimmerContainer.alpha = 1f
-                            return false // allow Glide to set placeholder
+                            return false
                         }
 
                         override fun onResourceReady(
@@ -197,9 +183,8 @@ class MovieAdapter(
                             model: Any,
                             target: Target<Drawable>?,
                             dataSource: DataSource,
-                            isFirstResource: Boolean
+                            isFirstResource: Boolean,
                         ): Boolean {
-                            // stop shimmer when ready
                             shimmerAnimator?.cancel()
                             shimmerContainer.alpha = 1f
                             return false
@@ -215,10 +200,10 @@ class MovieAdapter(
     }
 
     inner class LoadingHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val progress: ProgressBar? = view.findViewById(R.id.footer_progress)
+        private val progress: ProgressBar = view.findViewById(R.id.footer_progress)
+
         fun bind() {
-            // Nothing to bind for now; progress bar will animate
-            progress?.isIndeterminate = true
+            progress.visibility = View.VISIBLE
         }
     }
 }

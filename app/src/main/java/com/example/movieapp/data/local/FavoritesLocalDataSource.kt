@@ -1,21 +1,23 @@
-package com.example.movieapp.repository
+package com.example.movieapp.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.movieapp.model.Movie
+import com.example.movieapp.domain.model.Movie
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import javax.inject.Inject
 import kotlin.jvm.Volatile
 
-class FavoritesRepository(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("favorites", Context.MODE_PRIVATE)
+class FavoritesLocalDataSource @Inject constructor(context: Context) {
+    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val gson = Gson()
+
     @Volatile
     private var cache: MutableMap<String, Movie>? = null
 
     private fun getMap(): MutableMap<String, Movie> {
         cache?.let { return it }
-        val stored = prefs.getString("movies_map", null)
+        val stored = prefs.getString(KEY_MOVIES_MAP, null)
         val map = if (stored.isNullOrBlank()) {
             mutableMapOf()
         } else {
@@ -28,7 +30,7 @@ class FavoritesRepository(context: Context) {
 
     private fun saveMap(map: MutableMap<String, Movie>) {
         cache = map
-        prefs.edit().putString("movies_map", gson.toJson(map)).apply()
+        prefs.edit().putString(KEY_MOVIES_MAP, gson.toJson(map)).apply()
     }
 
     fun add(movie: Movie) {
@@ -51,5 +53,10 @@ class FavoritesRepository(context: Context) {
     fun allFavorites(): List<Movie> {
         val map = getMap()
         return map.values.toList()
+    }
+
+    companion object {
+        private const val PREFS_NAME = "favorites"
+        private const val KEY_MOVIES_MAP = "movies_map"
     }
 }

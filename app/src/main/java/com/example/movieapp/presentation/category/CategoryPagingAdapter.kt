@@ -1,4 +1,4 @@
-package com.example.movieapp.paging
+package com.example.movieapp.presentation.category
 
 import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
@@ -18,7 +18,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.movieapp.R
-import com.example.movieapp.model.Movie
+import com.example.movieapp.domain.model.Movie
 import com.example.movieapp.util.GenreUtils
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -26,7 +26,7 @@ import com.google.android.material.imageview.ShapeableImageView
 import java.util.Locale
 
 class CategoryPagingAdapter(
-    private val onItemClick: (Movie) -> Unit
+    private val onItemClick: (Movie) -> Unit,
 ) : PagingDataAdapter<Movie, CategoryPagingAdapter.Holder>(DIFF) {
 
     companion object {
@@ -69,7 +69,6 @@ class CategoryPagingAdapter(
             val year = item.releaseDate?.takeIf { it.isNotBlank() }?.substringBefore('-')
             releaseYearTv.text = year ?: ""
 
-            // genres
             val genreNames = GenreUtils.namesForIds(item.genreIds)
             genresGroup.removeAllViews()
             val chipBgColor = ContextCompat.getColor(ctx, R.color.rating_overlay)
@@ -87,7 +86,6 @@ class CategoryPagingAdapter(
                 genresGroup.addView(chip)
             }
 
-            // shimmer
             shimmerAnimator?.cancel()
             shimmerContainer.alpha = 1f
             shimmerAnimator = ObjectAnimator.ofFloat(shimmerContainer, "alpha", 0.6f, 1f).apply {
@@ -104,7 +102,10 @@ class CategoryPagingAdapter(
                     .placeholder(R.drawable.ic_launcher_background)
                     .listener(object : RequestListener<Drawable> {
                         override fun onLoadFailed(
-                            e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<Drawable>,
+                            isFirstResource: Boolean,
                         ): Boolean {
                             shimmerAnimator?.cancel()
                             shimmerContainer.alpha = 1f
@@ -112,7 +113,11 @@ class CategoryPagingAdapter(
                         }
 
                         override fun onResourceReady(
-                            resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean
+                            resource: Drawable,
+                            model: Any,
+                            target: Target<Drawable>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean,
                         ): Boolean {
                             shimmerAnimator?.cancel()
                             shimmerContainer.alpha = 1f
@@ -128,4 +133,3 @@ class CategoryPagingAdapter(
         }
     }
 }
-

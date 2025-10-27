@@ -1,7 +1,7 @@
-package com.example.movieapp.network
+package com.example.movieapp.data.remote.api
 
-import com.example.movieapp.model.Movie
-import com.example.movieapp.model.MovieResponse
+import com.example.movieapp.data.remote.dto.MovieDto
+import com.example.movieapp.data.remote.dto.MovieResponseDto
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -12,30 +12,30 @@ interface TmdbApi {
     fun searchMovies(
         @Query("api_key") apiKey: String,
         @Query("query") query: String,
-        @Query("page") page: Int = 1
-    ): Call<MovieResponse>
+        @Query("page") page: Int = 1,
+    ): Call<MovieResponseDto>
 
     @GET("movie/top_rated")
     fun getTopRated(
         @Query("api_key") apiKey: String,
-        @Query("page") page: Int = 1
-    ): Call<MovieResponse>
+        @Query("page") page: Int = 1,
+    ): Call<MovieResponseDto>
 
     @GET("movie/popular")
     fun getPopular(
         @Query("api_key") apiKey: String,
-        @Query("page") page: Int = 1
-    ): Call<MovieResponse>
+        @Query("page") page: Int = 1,
+    ): Call<MovieResponseDto>
 
     @GET("movie/now_playing")
     fun getNowPlaying(
         @Query("api_key") apiKey: String,
-        @Query("page") page: Int = 1
-    ): Call<MovieResponse>
+        @Query("page") page: Int = 1,
+    ): Call<MovieResponseDto>
 
     @GET("movie/{movie_id}")
     fun getMovieDetails(
         @Path("movie_id") movieId: Int,
-        @Query("api_key") apiKey: String
-    ): Call<Movie>
+        @Query("api_key") apiKey: String,
+    ): Call<MovieDto>
 }
