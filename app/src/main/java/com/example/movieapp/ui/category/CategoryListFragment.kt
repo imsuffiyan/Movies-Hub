@@ -74,7 +74,7 @@ class CategoryListFragment : Fragment(R.layout.fragment_category_list) {
         legacyAdapter = MovieAdapter(onItemClick = { movie -> openDetail(movie) })
 
         recycler = view.findViewById<RecyclerView>(R.id.category_list).apply {
-            layoutManager = LinearLayoutManager(requireContext())
+            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
             setHasFixedSize(true)
         }
     }
