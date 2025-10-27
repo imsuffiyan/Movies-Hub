@@ -39,7 +39,6 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Recent searches shown as chips for quick access -->
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/search_recent_chips"
             android:layout_width="match_parent"
