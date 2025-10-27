@@ -16,8 +16,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.example.movieapp.R
-import com.example.movieapp.presentation.detail.MovieDetailUiState
-import com.example.movieapp.presentation.detail.MovieDetailViewModel
 import com.example.movieapp.util.GenreUtils
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.chip.Chip
@@ -55,86 +53,70 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
         fab.isVisible = false
         container.isVisible = false
 
-        fab.setOnClickListener { view ->
-            viewLifecycleOwner.lifecycleScope.launch {
-                val isFavorite = viewModel.toggleFavorite()
-                if (isFavorite != null) {
-                    val message = if (isFavorite) {
-                        getString(R.string.added_to_favorites)
-                    } else {
-                        getString(R.string.removed_from_favorites)
-                    }
-                    Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show()
+        fab.setOnClickListener { v ->
+            val isFavorite = viewModel.toggleFavorite()
+            if (isFavorite != null) {
+                val message = if (isFavorite) {
+                    getString(R.string.added_to_favorites)
+                } else {
+                    getString(R.string.removed_from_favorites)
                 }
+                Snackbar.make(v, message, Snackbar.LENGTH_SHORT).show()
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    bindState(state, tvTitle, tvOverview, tvRelease, tvRating, chipGroup, ivPoster, fab, container)
+                    tvTitle.text = state.title ?: getString(R.string.app_name)
+                    tvOverview.text = state.overview.orEmpty()
+                    val year = state.releaseDate?.takeIf { it.isNotBlank() }?.substringBefore('-')
+                    tvRelease.text = year ?: (state.releaseDate ?: "")
+                    if (state.voteAverage >= 0f) {
+                        tvRating.text = String.format(Locale.getDefault(), "\u2605 %.1f", state.voteAverage)
+                        tvRating.visibility = View.VISIBLE
+                    } else {
+                        tvRating.text = ""
+                        tvRating.visibility = View.INVISIBLE
+                    }
+
+                    val genreNames = GenreUtils.namesForIds(state.genreIds.takeIf { it.isNotEmpty() })
+                    chipGroup.removeAllViews()
+                    val chipBg = ContextCompat.getColor(requireContext(), R.color.rating_overlay)
+                    val chipText = ContextCompat.getColor(requireContext(), R.color.colorOnPrimary)
+                    val bgState = ColorStateList.valueOf(chipBg)
+                    for (name in genreNames) {
+                        val chip = Chip(requireContext())
+                        chip.text = name
+                        chip.isClickable = false
+                        chip.isCheckable = false
+                        chip.chipBackgroundColor = bgState
+                        chip.setTextColor(chipText)
+                        chip.chipCornerRadius = resources.getDimension(R.dimen.chip_corner_radius)
+                        chipGroup.addView(chip)
+                    }
+
+                    val imageUrl = state.posterPath?.let { "https://image.tmdb.org/t/p/w780$it" }
+                    if (imageUrl != null) {
+                        Glide.with(this@MovieDetailFragment)
+                            .load(imageUrl)
+                            .placeholder(R.drawable.ic_launcher_background)
+                            .into(ivPoster)
+                    } else {
+                        ivPoster.setImageResource(R.drawable.ic_launcher_background)
+                    }
+
+                    if (state.hasValidId) {
+                        fab.isVisible = true
+                        updateFabIcon(fab, state.isFavorite)
+                    } else {
+                        fab.isVisible = false
+                    }
+
+                    container.isVisible = true
                 }
             }
         }
-    }
-
-    private fun bindState(
-        state: MovieDetailUiState,
-        tvTitle: TextView,
-        tvOverview: TextView,
-        tvRelease: TextView,
-        tvRating: TextView,
-        chipGroup: ChipGroup,
-        ivPoster: ImageView,
-        fab: FloatingActionButton,
-        container: View,
-    ) {
-        tvTitle.text = state.title ?: getString(R.string.app_name)
-        tvOverview.text = state.overview.orEmpty()
-        val year = state.releaseDate?.takeIf { it.isNotBlank() }?.substringBefore('-')
-        tvRelease.text = year ?: (state.releaseDate ?: "")
-        if (state.voteAverage >= 0f) {
-            tvRating.text = String.format(Locale.getDefault(), "\u2605 %.1f", state.voteAverage)
-            tvRating.visibility = View.VISIBLE
-        } else {
-            tvRating.text = ""
-            tvRating.visibility = View.INVISIBLE
-        }
-
-        val genreNames = GenreUtils.namesForIds(state.genreIds.takeIf { it.isNotEmpty() })
-        chipGroup.removeAllViews()
-        val chipBg = ContextCompat.getColor(requireContext(), R.color.rating_overlay)
-        val chipText = ContextCompat.getColor(requireContext(), R.color.colorOnPrimary)
-        val bgState = ColorStateList.valueOf(chipBg)
-        for (name in genreNames) {
-            val chip = Chip(requireContext())
-            chip.text = name
-            chip.isClickable = false
-            chip.isCheckable = false
-            chip.chipBackgroundColor = bgState
-            chip.setTextColor(chipText)
-            chip.chipCornerRadius = resources.getDimension(R.dimen.chip_corner_radius)
-            chipGroup.addView(chip)
-        }
-
-        val imageUrl = state.posterPath?.let { "https://image.tmdb.org/t/p/w780$it" }
-        if (imageUrl != null) {
-            Glide.with(this)
-                .load(imageUrl)
-                .placeholder(R.drawable.ic_launcher_background)
-                .into(ivPoster)
-        } else {
-            ivPoster.setImageResource(R.drawable.ic_launcher_background)
-        }
-
-        if (state.hasValidId) {
-            fab.isVisible = true
-            updateFabIcon(fab, state.isFavorite)
-        } else {
-            fab.isVisible = false
-        }
-
-        container.isVisible = true
     }
 
     private fun updateFabIcon(fab: FloatingActionButton, isFav: Boolean) {

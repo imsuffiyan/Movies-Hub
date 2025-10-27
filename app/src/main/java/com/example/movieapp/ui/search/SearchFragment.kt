@@ -5,30 +5,27 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.SearchView
-import androidx.core.view.isVisible
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
-import com.example.movieapp.domain.model.Movie
-import com.example.movieapp.presentation.search.SearchUiState
-import com.example.movieapp.presentation.search.SearchViewModel
+import com.example.movieapp.model.Movie
+import com.example.movieapp.repository.MovieRepository
 import com.example.movieapp.ui.MovieAdapter
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SearchFragment : Fragment(R.layout.fragment_search) {
 
-    private val viewModel: SearchViewModel by viewModels()
+    @Inject
+    lateinit var repo: MovieRepository
 
     private lateinit var adapter: MovieAdapter
     private var recycler: RecyclerView? = null
@@ -39,11 +36,10 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+
+
         val toolbar = view.findViewById<MaterialToolbar>(R.id.search_toolbar)
-        toolbar.navigationIcon = AppCompatResources.getDrawable(
-            requireContext(),
-            androidx.appcompat.R.drawable.abc_ic_ab_back_material,
-        )
+        toolbar.navigationIcon = AppCompatResources.getDrawable(requireContext(), androidx.appcompat.R.drawable.abc_ic_ab_back_material)
         toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
         val searchView = view.findViewById<SearchView>(R.id.search_view)
@@ -59,17 +55,19 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         searchView.isIconified = false
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                if (!query.isNullOrBlank()) {
-                    viewModel.search(query)
-                    searchView.clearFocus()
+                query?.let {
+                    val q = it.trim()
+                    if (q.isNotEmpty()) {
+                        instructionView?.visibility = View.GONE
+                        performSearch(q)
+                    }
                 }
+                searchView.clearFocus()
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean = false
         })
-
-        observeUiState()
     }
 
     override fun onDestroyView() {
@@ -81,29 +79,29 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         super.onDestroyView()
     }
 
-    private fun observeUiState() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    renderState(state)
+    private fun performSearch(query: String) {
+        progress?.visibility = View.VISIBLE
+        emptyView?.visibility = View.GONE
+        repo.searchMovies(query) { result ->
+            result.onSuccess { movies ->
+                view?.post {
+                    progress?.visibility = View.GONE
+                    adapter.update(movies)
+                    emptyView?.visibility = if (movies.isEmpty()) View.VISIBLE else View.GONE
                 }
             }
-        }
-    }
-
-    private fun renderState(state: SearchUiState) {
-        progress?.isVisible = state.isLoading
-        instructionView?.isVisible = state.showInstructions
-        emptyView?.isVisible = !state.isLoading && state.results.isEmpty() && !state.showInstructions
-        adapter.update(state.results)
-
-        if (state.errorMessage != null && view != null) {
-            view?.let { root ->
-                Snackbar.make(root, state.errorMessage, Snackbar.LENGTH_LONG)
-                    .setAction(R.string.retry) { state.query.takeIf { it.isNotBlank() }?.let(viewModel::search) }
-                    .show()
+            result.onFailure { error ->
+                view?.post {
+                    progress?.visibility = View.GONE
+                    val message = error.message.takeUnless { it.isNullOrBlank() }
+                        ?: getString(R.string.error_loading_search)
+                    view?.let { root ->
+                        Snackbar.make(root, message, Snackbar.LENGTH_LONG)
+                            .setAction(R.string.retry) { performSearch(query) }
+                            .show()
+                    }
+                }
             }
-            viewModel.onErrorConsumed()
         }
     }
 
@@ -114,8 +112,8 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
             movie.posterPath,
             movie.releaseDate,
             movie.voteAverage ?: -1f,
-            movie.genreIds.toIntArray(),
-            movie.id,
+            movie.genreIds?.toIntArray(),
+           movie.id
         )
         findNavController().navigate(action)
     }

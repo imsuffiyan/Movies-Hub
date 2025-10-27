@@ -1,4 +1,4 @@
-package com.example.movieapp.data.remote.api
+package com.example.movieapp.network
 
 import com.example.movieapp.BuildConfig
 import okhttp3.OkHttpClient
@@ -28,3 +28,4 @@ object NetworkModule {
 
     val api: TmdbApi = retrofit.create(TmdbApi::class.java)
 }
+
