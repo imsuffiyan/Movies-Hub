@@ -2,7 +2,6 @@ package com.example.movieapp
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.MenuItem
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -40,6 +39,7 @@ class CategoryListActivity : AppCompatActivity() {
     private lateinit var pagingAdapter: CategoryPagingAdapter
     private lateinit var loadStateAdapter: CategoryLoadStateAdapter
     private lateinit var legacyAdapter: MovieAdapter
+    private lateinit var recycler: RecyclerView
 
     // Paging collection job so we can cancel when switching categories
     private var pagingJob: Job? = null
@@ -69,7 +69,7 @@ class CategoryListActivity : AppCompatActivity() {
 
         legacyAdapter = MovieAdapter(onItemClick = { movie -> openDetail(movie) })
 
-        val recycler = findViewById<RecyclerView>(R.id.category_list)
+        recycler = findViewById(R.id.category_list)
         val layoutManager = LinearLayoutManager(this)
         recycler.layoutManager = layoutManager
 
@@ -80,19 +80,23 @@ class CategoryListActivity : AppCompatActivity() {
         currentCategory = intent.getStringExtra(EXTRA_CATEGORY) ?: "popular"
 
         // show the appropriate adapter & start streaming data
-        displayCategory(currentCategory, recycler)
+        displayCategory(currentCategory)
     }
 
-    private fun displayCategory(category: String, recycler: RecyclerView) {
+    override fun onResume() {
+        super.onResume()
+        if (currentCategory == "favorite") {
+            refreshFavorites()
+        }
+    }
+
+    private fun displayCategory(category: String) {
+        currentCategory = category
         // cancel any existing paging collector
         pagingJob?.cancel()
-        Log.d("TAG15963", "displayCategory: ")
         // favorites (either explicit favorites category, or for popular if local favorites exist)
         if (category == "favorite") {
-
-            val favs = favRepo.allFavorites()
-            recycler.adapter = legacyAdapter
-            legacyAdapter.update(favs)
+            refreshFavorites()
             return
         }
 
@@ -103,9 +107,14 @@ class CategoryListActivity : AppCompatActivity() {
         pagingJob = lifecycleScope.launch {
             viewModel.moviesFor(category).collectLatest { pagingData ->
                 pagingAdapter.submitData(pagingData)
-                Log.d("TAG15963", "displayCategory: $pagingData")
             }
         }
+    }
+
+    private fun refreshFavorites() {
+        recycler.adapter = legacyAdapter
+        val favs = favRepo.allFavorites()
+        legacyAdapter.update(favs)
     }
 
     private fun openDetail(movie: Movie) {

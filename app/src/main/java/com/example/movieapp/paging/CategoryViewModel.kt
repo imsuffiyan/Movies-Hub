@@ -19,7 +19,7 @@ class CategoryViewModel @Inject constructor(
 
     fun moviesFor(category: String): Flow<PagingData<Movie>> {
         val pager = Pager(
-            config = PagingConfig(pageSize = 1, enablePlaceholders = false),
+            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
             pagingSourceFactory = { CategoryPagingSource(repository, category) }
         )
         return pager.flow.cachedIn(viewModelScope)
