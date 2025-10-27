@@ -1,17 +1,17 @@
-package com.example.movieapp.paging
+package com.example.movieapp.presentation.category
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
-import android.widget.ProgressBar
 
 class CategoryLoadStateAdapter(
-    private val retry: () -> Unit
+    private val retry: () -> Unit,
 ) : LoadStateAdapter<CategoryLoadStateAdapter.LoadStateViewHolder>() {
 
     override fun onBindViewHolder(holder: LoadStateViewHolder, loadState: LoadState) {
@@ -54,4 +54,3 @@ class CategoryLoadStateAdapter(
         }
     }
 }
-

@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.movieapp.R
-import com.example.movieapp.model.Movie
+import com.example.movieapp.domain.model.Movie
 
 class HorizontalMovieAdapter(
     private val onItemClick: (Movie) -> Unit = {},
