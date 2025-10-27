@@ -1,10 +1,10 @@
-package com.example.movieapp.network
+package com.example.movieapp.data.remote.api
 
+import kotlinx.coroutines.suspendCancellableCoroutine
 import retrofit2.Call
 import retrofit2.Response
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 suspend fun <T> Call<T>.awaitResponse(): Response<T> = suspendCancellableCoroutine { cont ->
     enqueue(object : retrofit2.Callback<T> {
@@ -16,6 +16,5 @@ suspend fun <T> Call<T>.awaitResponse(): Response<T> = suspendCancellableCorouti
             if (!cont.isCancelled) cont.resumeWithException(t)
         }
     })
-    cont.invokeOnCancellation { try { cancel() } catch (_: Throwable) {} }
+    cont.invokeOnCancellation { runCatching { cancel() } }
 }
-

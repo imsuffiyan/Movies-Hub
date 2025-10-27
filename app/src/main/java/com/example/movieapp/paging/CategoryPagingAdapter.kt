@@ -18,7 +18,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.movieapp.R
-import com.example.movieapp.model.Movie
+import com.example.movieapp.domain.model.Movie
 import com.example.movieapp.util.GenreUtils
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup

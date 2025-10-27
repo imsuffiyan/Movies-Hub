@@ -53,24 +53,15 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
         fab.isVisible = false
         container.isVisible = false
 
-        fab.setOnClickListener { v ->
-            val isFavorite = viewModel.toggleFavorite()
-            if (isFavorite != null) {
-                val message = if (isFavorite) {
-                    getString(R.string.added_to_favorites)
-                } else {
-                    getString(R.string.removed_from_favorites)
-                }
-                Snackbar.make(v, message, Snackbar.LENGTH_SHORT).show()
-            }
-        }
+        fab.setOnClickListener { viewModel.toggleFavorite() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    toolbar.title = state.title ?: getString(R.string.app_name)
+                launch {
+                    viewModel.uiState.collect { state ->
+                        toolbar.title = state.title ?: getString(R.string.app_name)
 
-                    tvTitle.text = state.title ?: getString(R.string.app_name)
+                        tvTitle.text = state.title ?: getString(R.string.app_name)
                     tvOverview.text = state.overview.orEmpty()
                     val year = state.releaseDate?.takeIf { it.isNotBlank() }?.substringBefore('-')
                     tvRelease.text = year ?: (state.releaseDate ?: "")
@@ -116,6 +107,23 @@ class MovieDetailFragment : Fragment(R.layout.fragment_movie_detail) {
                     }
 
                     container.isVisible = true
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        is MovieDetailEvent.FavoriteToggled -> {
+                            val message = if (event.isFavorite) {
+                                getString(R.string.added_to_favorites)
+                            } else {
+                                getString(R.string.removed_from_favorites)
+                            }
+                            Snackbar.make(fab, message, Snackbar.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }

@@ -2,19 +2,28 @@ package com.example.movieapp.ui.detail
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import com.example.movieapp.model.Movie
-import com.example.movieapp.repository.FavoritesRepository
+import androidx.lifecycle.viewModelScope
+import com.example.movieapp.domain.model.Movie
+import com.example.movieapp.domain.usecase.AddFavoriteUseCase
+import com.example.movieapp.domain.usecase.IsFavoriteUseCase
+import com.example.movieapp.domain.usecase.RemoveFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class MovieDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val favoritesRepository: FavoritesRepository,
+    private val addFavoriteUseCase: AddFavoriteUseCase,
+    private val removeFavoriteUseCase: RemoveFavoriteUseCase,
+    private val isFavoriteUseCase: IsFavoriteUseCase,
 ) : ViewModel() {
 
     private val args = MovieDetailFragmentArgs.fromSavedStateHandle(savedStateHandle)
@@ -28,33 +37,38 @@ class MovieDetailViewModel @Inject constructor(
             releaseDate = args.releaseDate,
             voteAverage = args.voteAverage,
             genreIds = args.genreIds?.toList().orEmpty(),
-            isFavorite = if (args.id > 0) favoritesRepository.isFavorite(args.id) else false,
+            isFavorite = false,
         ),
     )
     val uiState: StateFlow<MovieDetailUiState> = _uiState.asStateFlow()
 
-    fun toggleFavorite(): Boolean? {
+    private val _events = MutableSharedFlow<MovieDetailEvent>()
+    val events: SharedFlow<MovieDetailEvent> = _events.asSharedFlow()
+
+    init {
+        if (args.id > 0) {
+            viewModelScope.launch {
+                val favorite = isFavoriteUseCase(args.id)
+                _uiState.update { it.copy(isFavorite = favorite) }
+            }
+        }
+    }
+
+    fun toggleFavorite() {
         val current = _uiState.value
         if (!current.hasValidId) {
-            return null
+            return
         }
-        val shouldBeFavorite = !current.isFavorite
-        if (shouldBeFavorite) {
-            val movie = Movie(
-                id = current.movieId,
-                title = current.title,
-                overview = current.overview,
-                posterPath = current.posterPath,
-                releaseDate = current.releaseDate,
-                voteAverage = current.voteAverage.takeIf { it >= 0f },
-                genreIds = current.genreIds.takeIf { it.isNotEmpty() },
-            )
-            favoritesRepository.add(movie)
-        } else {
-            favoritesRepository.remove(current.movieId)
+        viewModelScope.launch {
+            val shouldBeFavorite = !current.isFavorite
+            if (shouldBeFavorite) {
+                addFavoriteUseCase(current.toMovie())
+            } else {
+                removeFavoriteUseCase(current.movieId)
+            }
+            _uiState.update { it.copy(isFavorite = shouldBeFavorite) }
+            _events.emit(MovieDetailEvent.FavoriteToggled(shouldBeFavorite))
         }
-        _uiState.update { it.copy(isFavorite = shouldBeFavorite) }
-        return shouldBeFavorite
     }
 }
 
@@ -70,4 +84,18 @@ data class MovieDetailUiState(
 ) {
     val hasValidId: Boolean
         get() = movieId > 0
+}
+
+private fun MovieDetailUiState.toMovie(): Movie = Movie(
+    id = movieId,
+    title = title,
+    overview = overview,
+    posterPath = posterPath,
+    releaseDate = releaseDate,
+    voteAverage = voteAverage.takeIf { it >= 0f },
+    genreIds = genreIds,
+)
+
+sealed interface MovieDetailEvent {
+    data class FavoriteToggled(val isFavorite: Boolean) : MovieDetailEvent
 }

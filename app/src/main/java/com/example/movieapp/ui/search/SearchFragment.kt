@@ -5,27 +5,27 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.SearchView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
-import com.example.movieapp.model.Movie
-import com.example.movieapp.repository.MovieRepository
+import com.example.movieapp.domain.model.Movie
 import com.example.movieapp.ui.MovieAdapter
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class SearchFragment : Fragment(R.layout.fragment_search) {
 
-    @Inject
-    lateinit var repo: MovieRepository
+    private val viewModel: SearchViewModel by viewModels()
 
     private lateinit var adapter: MovieAdapter
     private var recycler: RecyclerView? = null
@@ -35,8 +35,6 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-
 
         val toolbar = view.findViewById<MaterialToolbar>(R.id.search_toolbar)
         toolbar.navigationIcon = AppCompatResources.getDrawable(requireContext(), androidx.appcompat.R.drawable.abc_ic_ab_back_material)
@@ -58,8 +56,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
                 query?.let {
                     val q = it.trim()
                     if (q.isNotEmpty()) {
-                        instructionView?.visibility = View.GONE
-                        performSearch(q)
+                        viewModel.search(q)
                     }
                 }
                 searchView.clearFocus()
@@ -68,6 +65,8 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
 
             override fun onQueryTextChange(newText: String?): Boolean = false
         })
+
+        collectState()
     }
 
     override fun onDestroyView() {
@@ -79,32 +78,6 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         super.onDestroyView()
     }
 
-    private fun performSearch(query: String) {
-        progress?.visibility = View.VISIBLE
-        emptyView?.visibility = View.GONE
-        repo.searchMovies(query) { result ->
-            result.onSuccess { movies ->
-                view?.post {
-                    progress?.visibility = View.GONE
-                    adapter.update(movies)
-                    emptyView?.visibility = if (movies.isEmpty()) View.VISIBLE else View.GONE
-                }
-            }
-            result.onFailure { error ->
-                view?.post {
-                    progress?.visibility = View.GONE
-                    val message = error.message.takeUnless { it.isNullOrBlank() }
-                        ?: getString(R.string.error_loading_search)
-                    view?.let { root ->
-                        Snackbar.make(root, message, Snackbar.LENGTH_LONG)
-                            .setAction(R.string.retry) { performSearch(query) }
-                            .show()
-                    }
-                }
-            }
-        }
-    }
-
     private fun openDetail(movie: Movie) {
         val action = SearchFragmentDirections.actionSearchFragmentToMovieDetailFragment(
             movie.title,
@@ -112,9 +85,39 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
             movie.posterPath,
             movie.releaseDate,
             movie.voteAverage ?: -1f,
-            movie.genreIds?.toIntArray(),
-           movie.id
+            movie.genreIds.takeIf { it.isNotEmpty() }?.toIntArray(),
+            movie.id
         )
         findNavController().navigate(action)
+    }
+
+    private fun collectState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    progress?.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+                    instructionView?.visibility = if (state.showInstruction) View.VISIBLE else View.GONE
+                    emptyView?.visibility = if (state.showEmptyState) View.VISIBLE else View.GONE
+                    adapter.update(state.results)
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        is SearchEvent.Error -> showError(event.message)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showError(message: String?) {
+        val text = message.takeUnless { it.isNullOrBlank() } ?: getString(R.string.error_loading_search)
+        view?.let { root ->
+            Snackbar.make(root, text, Snackbar.LENGTH_LONG).show()
+        }
     }
 }

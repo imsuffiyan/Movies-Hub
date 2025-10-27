@@ -9,23 +9,26 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
-import com.example.movieapp.model.Movie
-import com.example.movieapp.model.Section
+import com.example.movieapp.domain.model.Movie
+import com.example.movieapp.ui.home.SectionUiModel
 
 class SectionAdapter(
     private val viewPool: RecyclerView.RecycledViewPool,
-    private val onSeeAll: (category: String, title: String) -> Unit,
+    private val onSeeAll: (category: SectionUiModel) -> Unit,
     private val onItemClick: (Movie) -> Unit
-) : ListAdapter<Section, SectionAdapter.Holder>(DIFF) {
+) : ListAdapter<SectionUiModel, SectionAdapter.Holder>(DIFF) {
 
     companion object {
-        private val DIFF = object : DiffUtil.ItemCallback<Section>() {
-            override fun areItemsTheSame(oldItem: Section, newItem: Section): Boolean = oldItem.category == newItem.category
-            override fun areContentsTheSame(oldItem: Section, newItem: Section): Boolean = oldItem == newItem
+        private val DIFF = object : DiffUtil.ItemCallback<SectionUiModel>() {
+            override fun areItemsTheSame(oldItem: SectionUiModel, newItem: SectionUiModel): Boolean =
+                oldItem.category == newItem.category
+
+            override fun areContentsTheSame(oldItem: SectionUiModel, newItem: SectionUiModel): Boolean =
+                oldItem == newItem
         }
     }
 
-    fun submitSections(newSections: List<Section>) {
+    fun submitSections(newSections: List<SectionUiModel>) {
         // Copy lists to force diffing even when underlying mutable list mutates in place
         submitList(newSections.map { it.copy(movies = it.movies.toList()) })
     }
@@ -54,9 +57,9 @@ class SectionAdapter(
             innerRv.setItemViewCacheSize(10)
         }
 
-        fun bind(section: Section) {
+        fun bind(section: SectionUiModel) {
             titleTv.text = section.title
-            seeAllTv.setOnClickListener { onSeeAll(section.category, section.title) }
+            seeAllTv.setOnClickListener { onSeeAll(section) }
             innerAdapter.submitItems(section.movies)
         }
     }
