@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Movie App</string>
+    <string name="search_hint">Search movies</string>
+    <string name="no_results">No results</string>
+    <string name="movie_poster_desc">Movie poster</string>
+    <string name="genres_label">Genres</string>
+    <string name="sample_year">2025</string>
+    <string name="sample_rating">★ 7.5</string>
+    <string name="dash">—</string>
+    <string name="sample_votes">123 votes</string>
+    <string name="sample_popularity">pop 10.2</string>
+    <string name="overview_label">Overview</string>
+    <string name="favorite">Favorite</string>
+    <string name="added_to_favorites">Added to favorites</string>
+    <string name="removed_from_favorites">Removed from favorites</string>
+    <!-- Section titles -->
+    <string name="rated_movies">Rated Movies</string>
+    <string name="favorite_movies">Favourite Movies</string>
+    <string name="popular_movies">Popular Movies</string>
+    <string name="newest_movies">Newest Movies</string>
+    <string name="see_all">See all</string>
+    <string name="search_instruction">Search for movies by title. Tap a recent search or type and submit to see results.</string>
+</resources>

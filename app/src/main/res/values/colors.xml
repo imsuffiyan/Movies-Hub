@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme palette -->
+    <color name="colorBackground">#121212</color>
+    <color name="colorSurface">#1E1E1E</color>
+    <color name="colorOnSurface">#EDEDED</color>
+    <!-- Slightly dimmed on-surface for secondary text -->
+    <color name="colorOnSurfaceDim">#B3EDEDED</color>
+    <color name="colorPrimary">#1E88E5</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <!-- chips / overlays -->
+    <color name="rating_overlay">#33FFFFFF</color>
+    <!-- shimmer (subtle dark shimmer) -->
+    <color name="shimmer_base">#202020</color>
+    <color name="shimmer_highlight">#2C2C2C</color>
+</resources>
