@@ -5,20 +5,25 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.movieapp.R
 import com.example.movieapp.model.Movie
 
 class HorizontalMovieAdapter(
-    private var items: List<Movie> = emptyList(),
-    private val onItemClick: (Movie) -> Unit = {}
-) : RecyclerView.Adapter<HorizontalMovieAdapter.Holder>() {
+    private val onItemClick: (Movie) -> Unit = {},
+) : ListAdapter<Movie, HorizontalMovieAdapter.Holder>(DIFF) {
 
-    fun update(newItems: List<Movie>) {
-        this.items = newItems
-        notifyDataSetChanged()
+    companion object {
+        private val DIFF = object : DiffUtil.ItemCallback<Movie>() {
+            override fun areItemsTheSame(oldItem: Movie, newItem: Movie): Boolean = oldItem.id == newItem.id
+            override fun areContentsTheSame(oldItem: Movie, newItem: Movie): Boolean = oldItem == newItem
+        }
     }
+
+    fun submitItems(newItems: List<Movie>) = submitList(newItems)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_small_movie, parent, false)
@@ -26,12 +31,10 @@ class HorizontalMovieAdapter(
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        val movie = items[position]
+        val movie = getItem(position)
         holder.bind(movie)
         holder.itemView.setOnClickListener { onItemClick(movie) }
     }
-
-    override fun getItemCount(): Int = items.size
 
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         private val poster: ImageView = view.findViewById(R.id.small_poster)
@@ -51,4 +54,3 @@ class HorizontalMovieAdapter(
         }
     }
 }
-

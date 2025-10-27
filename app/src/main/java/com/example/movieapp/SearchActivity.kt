@@ -11,14 +11,18 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.model.Movie
-import com.example.movieapp.network.NetworkModule
 import com.example.movieapp.repository.MovieRepository
 import com.example.movieapp.ui.MovieAdapter
 import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.google.android.material.snackbar.Snackbar
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class SearchActivity : AppCompatActivity() {
 
-    private lateinit var repo: MovieRepository
+    @Inject
+    lateinit var repo: MovieRepository
     private lateinit var adapter: MovieAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,8 +34,6 @@ class SearchActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-
-        repo = MovieRepository(NetworkModule.api)
 
         val searchView = findViewById<SearchView>(R.id.search_view)
         val searchProgress = findViewById<CircularProgressIndicator>(R.id.search_progress)
@@ -59,6 +61,7 @@ class SearchActivity : AppCompatActivity() {
 
 
     private fun doSearch(query: String, progress: CircularProgressIndicator) {
+        progress.visibility = View.VISIBLE
         repo.searchMovies(query) { result ->
             result.onSuccess { movies ->
                 runOnUiThread {
@@ -66,9 +69,14 @@ class SearchActivity : AppCompatActivity() {
                     adapter.update(movies)
                 }
             }
-            result.onFailure {
+            result.onFailure { error ->
                 runOnUiThread {
                     progress.visibility = View.GONE
+                    val message = error.message.takeUnless { it.isNullOrBlank() }
+                        ?: getString(R.string.error_loading_search)
+                    Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG)
+                        .setAction(R.string.retry) { doSearch(query, progress) }
+                        .show()
                 }
             }
         }

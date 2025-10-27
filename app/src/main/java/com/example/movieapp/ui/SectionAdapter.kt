@@ -4,24 +4,30 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.R
-import com.example.movieapp.model.Section
 import com.example.movieapp.model.Movie
+import com.example.movieapp.model.Section
 
 class SectionAdapter(
     private val viewPool: RecyclerView.RecycledViewPool,
     private val onSeeAll: (category: String, title: String) -> Unit,
     private val onItemClick: (Movie) -> Unit
-) : RecyclerView.Adapter<SectionAdapter.Holder>() {
+) : ListAdapter<Section, SectionAdapter.Holder>(DIFF) {
 
-    private val sections = mutableListOf<Section>()
+    companion object {
+        private val DIFF = object : DiffUtil.ItemCallback<Section>() {
+            override fun areItemsTheSame(oldItem: Section, newItem: Section): Boolean = oldItem.category == newItem.category
+            override fun areContentsTheSame(oldItem: Section, newItem: Section): Boolean = oldItem == newItem
+        }
+    }
 
-    fun updateSections(newSections: List<Section>) {
-        sections.clear()
-        sections.addAll(newSections)
-        notifyDataSetChanged()
+    fun submitSections(newSections: List<Section>) {
+        // Copy lists to force diffing even when underlying mutable list mutates in place
+        submitList(newSections.map { it.copy(movies = it.movies.toList()) })
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -30,21 +36,18 @@ class SectionAdapter(
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.bind(sections[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount(): Int = sections.size
 
     inner class Holder(view: View) : RecyclerView.ViewHolder(view) {
         private val titleTv: TextView = view.findViewById(R.id.section_title)
         private val seeAllTv: TextView = view.findViewById(R.id.section_see_all)
         private val innerRv: RecyclerView = view.findViewById(R.id.section_recycler)
-        private val innerAdapter = HorizontalMovieAdapter(emptyList(), onItemClick)
+        private val innerAdapter = HorizontalMovieAdapter(onItemClick)
 
         init {
             innerRv.layoutManager = LinearLayoutManager(itemView.context, LinearLayoutManager.HORIZONTAL, false)
             innerRv.adapter = innerAdapter
-            // Performance tweaks for nested recyclers
             innerRv.setRecycledViewPool(viewPool)
             innerRv.setHasFixedSize(true)
             innerRv.isNestedScrollingEnabled = false
@@ -54,7 +57,7 @@ class SectionAdapter(
         fun bind(section: Section) {
             titleTv.text = section.title
             seeAllTv.setOnClickListener { onSeeAll(section.category, section.title) }
-            innerAdapter.update(section.movies)
+            innerAdapter.submitItems(section.movies)
         }
     }
 }

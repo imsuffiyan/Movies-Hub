@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -13,15 +14,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.movieapp.model.Movie
 import com.example.movieapp.model.Section
-import com.example.movieapp.network.NetworkModule
 import com.example.movieapp.repository.MovieRepository
 import com.example.movieapp.ui.SectionAdapter
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var repo: MovieRepository
+    @Inject
+    lateinit var repo: MovieRepository
     private lateinit var sectionAdapter: SectionAdapter
     private val sections = mutableListOf(
         Section(title = "Rated Movies", category = "top_rated"),
@@ -42,8 +45,6 @@ class MainActivity : AppCompatActivity() {
         val toolbar = findViewById<Toolbar>(R.id.main_toolbar)
         setSupportActionBar(toolbar)
 
-        repo = MovieRepository(NetworkModule.api)
-
         // shared view pool for inner recyclers
         val viewPool = RecyclerView.RecycledViewPool()
 
@@ -57,38 +58,29 @@ class MainActivity : AppCompatActivity() {
         val recyclerSections = findViewById<RecyclerView>(R.id.recycler_sections)
         recyclerSections.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         recyclerSections.adapter = sectionAdapter
-        sectionAdapter.updateSections(sections)
+        sectionAdapter.submitSections(sections)
 
         // Load data for sections
         loadCategories()
     }
 
     private fun loadCategories() {
-        // Top rated
-        repo.getTopRated { res ->
-            res.onSuccess { movies ->
-                runOnUiThread {
-                    updateSectionMovies("top_rated", movies)
-                }
-            }
+        sections.forEach { loadSection(it.category) }
+    }
+
+    private fun loadSection(category: String) {
+        val callback: (Result<List<Movie>>) -> Unit = { res ->
+            res.fold(onSuccess = { movies ->
+                runOnUiThread { updateSectionMovies(category, movies) }
+            }, onFailure = { error ->
+                runOnUiThread { showSectionError(category, error) }
+            })
         }
 
-        // Popular
-        repo.getPopular { res ->
-            res.onSuccess { movies ->
-                runOnUiThread {
-                    updateSectionMovies("popular", movies)
-                }
-            }
-        }
-
-        // Now playing
-        repo.getNowPlaying { res ->
-            res.onSuccess { movies ->
-                runOnUiThread {
-                    updateSectionMovies("now_playing", movies)
-                }
-            }
+        when (category) {
+            "top_rated" -> repo.getTopRated(callback)
+            "popular" -> repo.getPopular(callback)
+            "now_playing" -> repo.getNowPlaying(callback)
         }
     }
 
@@ -96,8 +88,18 @@ class MainActivity : AppCompatActivity() {
         val idx = sections.indexOfFirst { it.category == category }
         if (idx >= 0) {
             sections[idx] = sections[idx].copy(movies = movies)
-            sectionAdapter.updateSections(sections)
+            sectionAdapter.submitSections(sections)
         }
+    }
+
+    private fun showSectionError(category: String, throwable: Throwable) {
+        val title = sections.firstOrNull { it.category == category }?.title ?: category
+        val message = throwable.message.takeUnless { it.isNullOrBlank() }
+            ?: getString(R.string.error_loading_section, title)
+        val root: View = findViewById(android.R.id.content)
+        Snackbar.make(root, message, Snackbar.LENGTH_LONG)
+            .setAction(R.string.retry) { loadSection(category) }
+            .show()
     }
 
     private fun startCategory(category: String, title: String) {

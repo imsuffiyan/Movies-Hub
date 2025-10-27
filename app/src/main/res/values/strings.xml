@@ -13,6 +13,9 @@
     <string name="favorite">Favorite</string>
     <string name="added_to_favorites">Added to favorites</string>
     <string name="removed_from_favorites">Removed from favorites</string>
+    <string name="error_loading_section">Unable to load %1$s. Please try again.</string>
+    <string name="error_loading_search">Unable to load search results. Please try again.</string>
+    <string name="retry">Retry</string>
     <!-- Section titles -->
     <string name="rated_movies">Rated Movies</string>
     <string name="favorite_movies">Favourite Movies</string>

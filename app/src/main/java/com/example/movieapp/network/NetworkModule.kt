@@ -1,5 +1,6 @@
 package com.example.movieapp.network
 
+import com.example.movieapp.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -10,7 +11,7 @@ object NetworkModule {
     private const val BASE_URL = "https://api.themoviedb.org/3/"
 
     private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BASIC
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
     }
 
     private val client = OkHttpClient.Builder()
